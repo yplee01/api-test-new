@@ -2,10 +2,13 @@ package com.example1.springh2test;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 import java.util.LinkedList;
@@ -23,7 +26,7 @@ public class ApiPost {
 
     /* 게시물 작성(post) */
     @PostMapping("/api/post/create")
-    public long createPost(@RequestBody PostVo postVo) throws SQLException {
+    public ResponseEntity<Long> createPost(@RequestBody PostVo postVo) throws SQLException {
         Date nowDate = new Date();
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
         postVo.setCreate_time(simpleDateFormat.format(nowDate));
@@ -37,14 +40,17 @@ public class ApiPost {
         log.info(String.valueOf(postVo.getSeq()));
         postVo.setSeq(databasehandle.insertPost(postVo));
         log.info(String.valueOf(postVo.getSeq()));
-        return postVo.getSeq();
+        return ResponseEntity.status(HttpStatus.OK).body(postVo.getSeq());
     }
 
     /* 게시물 수정(post) */
     @PutMapping("/api/post/modify")
-    public long postModify(@RequestParam String seq, @RequestBody PostVo postVo) {
+    public ResponseEntity postModify(@RequestParam String seq, @RequestBody PostVo postVo) {
         Date nowDate = new Date();
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+        //long date=System.currentTimeMillis();
+
+        //LocalDateTime time = LocalDateTime.now();
         postVo.setModify_time(simpleDateFormat.format(nowDate));
         postVo.setSeq(Long.parseLong(seq));
 
@@ -56,11 +62,12 @@ public class ApiPost {
         log.info(postVo.getModify_time());
         log.info(postVo.getIp());
         try {
-            return databasehandle.modifyPost(postVo);
+            databasehandle.modifyPost(postVo);
         } catch (SQLException e) {
             e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal Server Error");
         }
-        return 0;
+        return ResponseEntity.ok(true);
     }
 
     /* page 목록 조회(몇 page 까지 있는지?)
@@ -68,7 +75,7 @@ public class ApiPost {
      - return 최대 Page 번호
    */
     @GetMapping("/api/get/pagenum")
-    public long getPageNum(@RequestParam String typecode, @RequestParam int pagelimit) {
+    public ResponseEntity<Long> getPageNum(@RequestParam String typecode, @RequestParam int pagelimit) {
         log.info(typecode);
         log.info(String.valueOf(pagelimit));
         long postnum = 0;
@@ -80,7 +87,7 @@ public class ApiPost {
         log.info(String.valueOf(postnum));
         long pagenum = (postnum / pagelimit) + 1;
         log.info(String.valueOf(pagenum));
-        return pagenum;
+        return ResponseEntity.ok(pagenum);
     }
 
     /* 게시글 목록 조회(GET)
@@ -89,7 +96,8 @@ public class ApiPost {
      * Return : 게시글 요약 정보 list
      */
     @GetMapping("api/get/pagelist")
-    public LinkedList<PostAbstractVo> getPageList(String typecode, int pagelimit) {
+    //public LinkedList<PostAbstractVo> getPageList(String typecode, int pagelimit) {
+    public ResponseEntity<LinkedList> getPageList(String typecode, int pagelimit) {
         LinkedList<PostAbstractVo> postAbstractVoLinkedList = new LinkedList<>();
         log.info(typecode);
         log.info(String.valueOf(pagelimit));
@@ -112,10 +120,12 @@ public class ApiPost {
                 post.setId(memberVo.getId());
             } catch (SQLException e) {
                 e.printStackTrace();
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
             }
             log.info(post.getId());
         }
-        return postAbstractVoLinkedList;
+        return ResponseEntity.status(HttpStatus.OK).body(postAbstractVoLinkedList);
+        //return postAbstractVoLinkedList;
     }
     /* 게시물 조회(get) -> map 작성*/
     /* Argument : Seq
@@ -123,7 +133,8 @@ public class ApiPost {
      * 댓글 등록 정보
      */
     @GetMapping("api/get/post")
-    public PostNCommentVo getPost(@RequestParam String seq) throws SQLException {
+    //public PostNCommentVo getPost(@RequestParam String seq) throws SQLException {
+    public ResponseEntity<PostNCommentVo> getPost(@RequestParam String seq) throws SQLException {
         log.info("START GET POST");
         PostNCommentVo postNCommentVo = new PostNCommentVo();
         PostVo postVo = new PostVo();
@@ -137,11 +148,12 @@ public class ApiPost {
         postNCommentVo.setPostLikeCount(databasehandle.getLikeCount(postVo.getSeq(), "post_like"));
         databasehandle.getAllCommentInfoByPostSeq(String.valueOf(postVo.getSeq()), commentVoLinkedList);
         postNCommentVo.setCommentLinkedList(commentVoLinkedList);
-        /* List 처리 필요 */
-        return postNCommentVo;
+        return ResponseEntity.ok(postNCommentVo);
+        //return postNCommentVo;
     }
     @PostMapping("/api/post/comment")
-    public void createComment(@RequestBody CommentVo commentVo) {
+    //public void createComment(@RequestBody CommentVo commentVo) {
+    public ResponseEntity createComment(@RequestBody CommentVo commentVo) {
         log.info(commentVo.getContent());
         log.info(commentVo.getIp());
         log.info(String.valueOf(commentVo.getMember_seq()));
@@ -152,41 +164,37 @@ public class ApiPost {
             seq = databasehandle.insertComment(commentVo);
         } catch (SQLException e) {
             e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("internal server error");
         }
         log.info(String.valueOf(seq));
+        return ResponseEntity.ok(true);
     }
     @PutMapping("/api/post/like")
-    public void addPostLike(@RequestParam String seq, @RequestParam String memberseq) {
+    public ResponseEntity addPostLike(@RequestParam String seq, @RequestParam String memberseq) {
         log.info(String.valueOf(seq));
         log.info(String.valueOf(memberseq));
         try {
             databasehandle.increaseLike(Long.valueOf(seq), Long.valueOf(memberseq), "post_like");
         } catch (SQLException e) {
             e.printStackTrace();
-            /* 질문.... 이 경우에 500 Error 전송이 필요한데... */
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("internal server error");
         }
+        return ResponseEntity.ok(true);
     }
     @PutMapping("/api/comment/like")
-    public void addCommentLike(@RequestParam String seq, @RequestParam String memberseq) {
+    public ResponseEntity addCommentLike(@RequestParam String seq, @RequestParam String memberseq) {
         log.info(String.valueOf(seq));
         log.info(String.valueOf(memberseq));
         try {
             databasehandle.increaseLike(Long.valueOf(seq), Long.valueOf(memberseq), "comment_like");
         } catch (SQLException e) {
             e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("internal server error");
         }
+        return ResponseEntity.ok(true);
     }
 }
-    /* Commment 추가
-     *
-     *
-     */
 
-    /*
-    @RequestMapping("/api/reply")
-    public ResponseEntity<Boolean> createReply(@RequestParam String like_type, )
-
-     */
 
 
 

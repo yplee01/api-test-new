@@ -190,7 +190,6 @@ public class DataBaseHandle {
         long post_num = 0;
         String sql = new String();
         String orig_type = new String();
-        CommentVo commentVo = new CommentVo();
 
         Connection connection = dataSource.getConnection();
         Statement statement = connection.createStatement();
@@ -203,6 +202,7 @@ public class DataBaseHandle {
         log.info("START getAllCommentInfoByPostSeq");
 
         while (resultSet.next()) {
+            CommentVo commentVo = new CommentVo();
             commentVo.setSeq(resultSet.getLong("seq"));
             commentVo.setMember_seq(resultSet.getLong("member_seq"));
             commentVo.setContent(resultSet.getString("content"));
@@ -213,7 +213,6 @@ public class DataBaseHandle {
             commentVo.setPost_seq(resultSet.getLong("post_seq"));
             commentVo.setCommentLikeCount(this.getLikeCount(commentVo.getSeq(), "comment_like"));
             commentLinkedList.add(commentVo);
-            commentVo = new CommentVo();
         }
         resultSet.close();
         statement.close();

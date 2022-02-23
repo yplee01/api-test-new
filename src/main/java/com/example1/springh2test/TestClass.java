@@ -1,6 +1,7 @@
 package com.example1.springh2test;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,14 +27,16 @@ public class TestClass {
         databasehandle.createTable();
         return ResponseEntity.ok(true);
     }
+//    public ResponseEntity<반환형 class명> test3(
 
-    @PostMapping("api/table/files")
+            @PostMapping("api/table/files")
     public ResponseEntity<Boolean> test3(
             @RequestParam MultipartFile file) throws IOException {
         log.info(file.toString());
         log.info(file.getOriginalFilename());
         log.info(file.getResource().getFile().toString());
-        return ResponseEntity.ok(true);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(false);
+        return ResponseEntity.status(HttpStatus.OK).body()
     }
 
     @PostMapping("api/table/insert")
